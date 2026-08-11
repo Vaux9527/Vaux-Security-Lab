@@ -7,9 +7,11 @@ app = Flask(__name__)
 def index():
 
     return render_template("index.html")
+
 @app.route("/labs")
 def labs():
-    return "Sercurity Labs"
+    
+    return render_template("labs.html")
 
 if __name__ == "__main__":
     app.run(
