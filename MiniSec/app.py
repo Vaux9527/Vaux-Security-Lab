@@ -10,6 +10,13 @@ def index():
 
 @app.route("/labs")
 def labs():
+
+@app.route("/labs/<lab_name>")
+def lab(lab_name):
+    return render_template(
+        "lab.html",
+        lab_name=lab_name
+    )
     
     return render_template("labs.html")
 
