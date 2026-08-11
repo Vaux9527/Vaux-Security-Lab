@@ -8,9 +8,6 @@ def index():
 
     return render_template("index.html")
 
-@app.route("/labs")
-def labs():
-
 @app.route("/labs/<lab_name>")
 def lab(lab_name):
     return render_template(
