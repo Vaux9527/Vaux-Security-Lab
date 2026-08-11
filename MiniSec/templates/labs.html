@@ -3,42 +3,83 @@
 
 
 <head>
-    <title>MiniSec Labs</title>
+
+    <title>
+        MiniSec Labs
+    </title>
+
 </head>
 
 
 <body>
-    <nav>
-        <a href="/">首页</a>
-        |
-        <a href="/labs">漏洞实验</a>
-    </nav>
 
 
-    <h1>
-        漏洞实验中心
-        <br>
-        Vulnerability Labs Center
-    </h1>
+<nav>
+
+    <a href="/">
+        首页 Home
+    </a>
+
+    |
+
+    <a href="/labs">
+        漏洞实验 Labs
+    </a>
+
+</nav>
+
+
+
+<h1>
+    MiniSec Vulnerability Labs
+</h1>
+
+
+<p>
+    探索常见Web漏洞与安全原理
+    <br>
+    Explore common web vulnerabilities and security concepts
+</p>
+
+
+
+<h2>
+    实验列表 Lab List
+</h2>
+
+
+
+{% for key, lab in labs.items() %}
+
+
+<div>
+
+    <h3>
+        <a href="/labs/{{ key }}">
+            {{ lab.title }}
+        </a>
+    </h3>
 
 
     <p>
-        探索常见Web漏洞与安全原理
-        <br>
-        Explore common web vulnerabilities and security concepts
+        {{ lab.english }}
     </p>
 
-    <h2>
-        SQL注入实验
-        <br>
-        SQL Injection
-    </h2>
 
     <p>
-        学习SQL注入漏洞原理
-        <br>
-        Learn the fundamentals of SQL Injection vulnerabilities.
+        {{ lab.description }}
     </p>
+
+
+</div>
+
+
+<hr>
+
+
+{% endfor %}
+
+
 
 </body>
 
