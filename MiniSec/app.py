@@ -1,12 +1,18 @@
 from flask import Flask, render_template
 
+
 app = Flask(__name__)
 
 
 @app.route("/")
 def index():
-
     return render_template("index.html")
+
+
+@app.route("/labs")
+def labs():
+    return render_template("labs.html")
+
 
 @app.route("/labs/<lab_name>")
 def lab(lab_name):
@@ -14,8 +20,7 @@ def lab(lab_name):
         "lab.html",
         lab_name=lab_name
     )
-    
-    return render_template("labs.html")
+
 
 if __name__ == "__main__":
     app.run(
