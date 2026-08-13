@@ -1,5 +1,6 @@
 from flask import Blueprint,render_template
 from database import get_db
+from auth import login_required
 
 labs_bp = Blueprint(
     "labs",
@@ -7,6 +8,7 @@ labs_bp = Blueprint(
 )
 
 @labs_bp.route("/labs")
+@login_required
 def labs():
 
     conn = get_db()
@@ -38,6 +40,7 @@ def labs():
     )
 
 @labs_bp.route("/labs/<lab_name>")
+@login_required
 def lab(lab_name):
 
     conn = get_db()

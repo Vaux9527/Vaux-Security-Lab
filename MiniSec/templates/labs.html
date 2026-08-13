@@ -1,87 +1,95 @@
-<!DOCTYPE html>
-<html>
+{% extends "base.html" %}
 
 
-<head>
-
-    <title>
-        MiniSec Labs
-    </title>
-
-</head>
-
-
-<body>
-
-
-<nav>
-
-    <a href="/">
-        首页 Home
-    </a>
-
-    |
-
-    <a href="/labs">
-        漏洞实验 Labs
-    </a>
-
-</nav>
+{% block content %}
 
 
 
-<h1>
-    MiniSec Vulnerability Labs
-</h1>
+<div class="card">
 
 
-<p>
-    探索常见Web漏洞与安全原理
-    <br>
-    Explore common web vulnerabilities and security concepts
-</p>
-
-
-
-<h2>
-    实验列表 Lab List
-</h2>
-
-
-
-{% for key, lab in labs.items() %}
-
-
-<div>
-
-    <h3>
-        <a href="/labs/{{ key }}">
-            {{ lab.title }}
-        </a>
-    </h3>
+    <h1>
+        MiniSec Vulnerability Labs
+    </h1>
 
 
     <p>
-        {{ lab.english }}
-    </p>
-
-
-    <p>
-        {{ lab.description }}
+        探索常见 Web 漏洞与安全原理
+        <br>
+        Explore common web vulnerabilities and security concepts
     </p>
 
 
 </div>
 
 
-<hr>
+
+
+
+<div class="card">
+
+
+    <h2>
+        实验列表 Lab List
+    </h2>
+
+
+</div>
+
+
+
+
+
+{% for key, lab in labs.items() %}
+
+
+
+<div class="lab-card">
+
+
+    <h2>
+
+        {{ lab.title }}
+
+    </h2>
+
+
+
+    <p>
+
+        {{ lab.english }}
+
+    </p>
+
+
+
+    <p>
+
+        {{ lab.description }}
+
+    </p>
+
+
+
+
+    <a class="lab-button"
+       href="/labs/{{ key }}">
+
+        进入实验
+        <br>
+        Enter Lab
+
+    </a>
+
+
+
+</div>
+
 
 
 {% endfor %}
 
 
 
-</body>
 
-
-</html>
+{% endblock %}

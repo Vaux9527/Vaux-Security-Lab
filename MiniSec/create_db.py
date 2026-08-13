@@ -6,13 +6,12 @@ conn = sqlite3.connect("minisec.db")
 
 cursor = conn.cursor()
 
-
 cursor.execute("""
-CREATE TABLE labs (
-    id INTEGER PRIMARY KEY,
-    name TEXT,
-    title TEXT,
-    description TEXT
+CREATE TABLE IF NOT EXISTS users(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT,
+    password TEXT,
+    role TEXT
 )
 """)
 
@@ -23,4 +22,4 @@ conn.commit()
 conn.close()
 
 
-print("Labs table created!")
+print("Users table created!")

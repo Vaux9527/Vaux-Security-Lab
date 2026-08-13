@@ -1,30 +1,196 @@
-<!DOCTYPE html>
-<html>
+{% extends "base.html" %}
 
-<head>
-    <title>MiniSec</title>
-</head>
 
-<body>
 
-    <nav>
-        <a href="/">首页</a>
-        |
-        <a href="/labs">漏洞实验</a>
-    </nav>
+{% block content %}
+
+
+
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+
+
+
+    {% if messages %}
+
+
+
+        {% for category, message in messages %}
+
+
+        <div class="alert {{ category }}">
+
+            {{ message }}
+
+        </div>
+
+
+        {% endfor %}
+        
+    {% endif %}
+
+
+
+{% endwith %}
+
+
+
+
+
+
+
+<div class="card">
+
+
 
     <h1>
-        欢迎来到 MiniSec
-        <br>
-        Welcome to MiniSec
+
+        MiniSec Vulnerability Lab
+
     </h1>
 
+
+
     <p>
-        个人网络安全实验平台
+
+        网络空间安全实验平台
+
         <br>
-        Personal Cyber Security Laboratory
+
+        Cyber Security Learning Platform
+
     </p>
 
-</body>
 
-</html>
+
+    <p>
+
+        探索常见 Web 漏洞与安全原理
+
+        <br>
+
+        Explore common web vulnerabilities and security concepts
+
+    </p>
+
+
+
+</div>
+
+
+
+
+
+
+
+<div class="card">
+
+
+
+    <h2>
+
+        当前状态
+
+        <br>
+
+        Current Status
+
+    </h2>
+
+
+
+
+
+    {% if session.get("username") %}
+
+
+
+
+        <p>
+
+            当前用户:
+
+            {{ session.get("username") }}
+
+        </p>
+
+
+
+        <p>
+
+            Status:
+
+            Logged In
+
+        </p>
+
+
+
+    {% else %}
+
+
+
+
+        <p>
+
+            未登录
+
+            <br>
+
+            Not Logged In
+
+        </p>
+
+
+
+    {% endif %}
+
+
+
+
+
+</div>
+
+
+
+
+
+
+
+<div class="card">
+
+
+
+    <h2>
+
+        平台介绍
+
+        <br>
+
+        About MiniSec
+
+    </h2>
+
+
+
+    <p>
+
+        MiniSec 是一个用于学习 Web 安全漏洞原理的个人实验平台。
+
+        <br><br>
+
+        MiniSec is a personal laboratory platform
+        for learning web security vulnerabilities.
+
+    </p>
+
+
+
+</div>
+
+
+
+
+
+
+{% endblock %}

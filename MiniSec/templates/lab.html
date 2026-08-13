@@ -1,63 +1,324 @@
-<!DOCTYPE html>
-<html>
+{% extends "base.html" %}
 
 
-<head>
 
-    <title>
-        MiniSec Lab
-    </title>
-
-</head>
+{% block content %}
 
 
-<body>
 
 
-<nav>
+<div class="lab-header card">
 
-    <a href="/">
-        首页 Home
+
+    <h1>
+
+        {{ lab_info.title }}
+
+    </h1>
+
+
+
+    <p>
+
+        Web Security Laboratory
+
+        <br>
+
+        Web安全漏洞实验
+
+    </p>
+
+
+</div>
+
+
+
+
+
+
+
+<div class="lab-info">
+
+
+
+    <div class="info-item">
+
+
+        <span>
+
+            Category
+
+        </span>
+
+
+        <strong>
+
+            Web Security
+
+        </strong>
+
+
+    </div>
+
+
+
+
+    <div class="info-item">
+
+
+        <span>
+
+            Difficulty
+
+        </span>
+
+
+        <strong>
+
+            Beginner
+
+        </strong>
+
+
+    </div>
+
+
+
+
+    <div class="info-item">
+
+
+        <span>
+
+            Status
+
+        </span>
+
+
+        <strong>
+
+            Ready
+
+        </strong>
+
+
+    </div>
+
+
+
+</div>
+
+
+
+
+
+
+
+
+<div class="card">
+
+
+
+    <h2>
+
+        实验简介
+
+        <br>
+
+        Introduction
+
+    </h2>
+
+
+
+    <p>
+
+        {{ lab_info.description }}
+
+    </p>
+
+
+
+
+    <p>
+
+        本实验用于学习常见 Web 漏洞产生原因、
+        攻击方式以及对应安全防护措施。
+
+        <br><br>
+
+        This laboratory helps you understand the
+        principles, attack methods and defense
+        techniques of common web vulnerabilities.
+
+    </p>
+
+
+
+</div>
+
+
+
+
+
+
+
+
+<div class="card">
+
+
+
+    <h2>
+
+        实验目标
+
+        <br>
+
+        Objectives
+
+    </h2>
+
+
+
+    <p>
+
+
+        1. 理解漏洞产生的基本原因
+
+        <br>
+
+        2. 掌握漏洞利用流程
+
+        <br>
+
+        3. 学习安全修复方法
+
+
+    </p>
+
+
+
+</div>
+
+
+
+
+
+
+
+
+<div class="card">
+
+
+
+    <h2>
+
+        实验环境
+
+        <br>
+
+        Environment
+
+    </h2>
+
+
+
+    <p>
+
+
+        Platform:
+
+        MiniSec Vulnerability Lab
+
+
+        <br><br>
+
+
+        Laboratory Status:
+
+        Ready
+
+
+
+    </p>
+
+
+
+</div>
+
+
+
+
+
+
+
+
+<div class="card">
+
+
+
+    <h2>
+
+        开始实验
+
+        <br>
+
+        Start Laboratory
+
+    </h2>
+
+
+
+    <p>
+
+        点击下方按钮进入实验环境。
+
+        <br>
+
+        Click below to enter the laboratory.
+
+    </p>
+
+
+
+
+    <a class="lab-button"
+       href="#">
+
+        进入实验
+
+        <br>
+
+        Start
+
+
     </a>
 
-    |
 
-    <a href="/labs">
-        漏洞实验 Labs
-    </a>
 
-</nav>
+</div>
 
 
 
-<h1>
-    MiniSec Vulnerability Lab
-</h1>
 
 
 
-<h2>
-    {{ lab_info.title }}
-</h2>
 
 
-<h3>
-    {{ lab_info.english }}
-</h3>
+<a class="lab-button"
+href="/labs">
 
 
-<p>
-    {{ lab_info.description }}
-</p>
+返回实验列表
 
-<p>
-    Current Security Lab
-    <br>
-    当前安全实验
-</p>
+<br>
+
+Back To Labs
 
 
-</body>
+</a>
 
 
-</html>
+
+
+{% endblock %}
