@@ -1,0 +1,270 @@
+{% extends "lab_base.html" %}
+
+{# ============================================================
+   SQL Level 1 基础查询注入
+   页面骨架（实验说明 / 分析区 / 分层提示 / 漏洞与修复 / 实验总结）
+   都由 lab_base.html 提供，这里只写这一关独有的内容。
+   ============================================================ #}
+
+{% block lab_head %}
+
+    <p>
+        <a href="/labs/sql">
+            ← 返回 SQL Injection Lab
+        </a>
+    </p>
+
+    <h1>
+
+        Level 1 基础查询注入
+
+        <span class="sub">
+            Basic Query Injection
+        </span>
+
+    </h1>
+
+    <p class="lead">
+
+        学习用户输入如何影响数据库查询逻辑，以及如何修复。
+
+        <br>
+
+        Learn how user input changes the database query, and how to fix it.
+
+    </p>
+
+    <p class="meta">
+
+        <span class="badge plain">
+            难度 Difficulty：Beginner 入门
+        </span>
+
+        <span class="badge plain">
+            目标 Goal：让一次查询返回全部用户
+        </span>
+
+    </p>
+
+{% endblock %}
+
+{% block lab_intro %}
+
+    <h2>
+        实验说明
+        <span class="sub">Description</span>
+    </h2>
+
+    <p>
+
+        本关的后端代码<b>故意</b>使用字符串拼接来构造 SQL 查询：
+        你的输入会被直接放进 SQL 语句里。
+        你的任务是让查询条件永远成立，从而一次拿到所有用户。
+
+        <br><br>
+
+        This level <b>intentionally</b> builds the SQL query with string
+        concatenation, so your input goes straight into the statement.
+        Your goal is to make the condition always true and return every user.
+
+    </p>
+
+    <p>
+
+        <b>通关判定：</b>一次查询返回的用户数量<b>大于 1</b> 即视为通关。
+        只把查询对象换成别人（例如 <code>bob' --</code>）同样属于注入，
+        但本关要求拿到<b>全部</b>用户。
+
+        <br>
+
+        <span class="en">
+            <b>Completion rule:</b> the query must return more than one user.
+            Swapping the target (e.g. <code>bob' --</code>) is also injection,
+            but this level requires <b>every</b> user.
+        </span>
+
+    </p>
+
+{% endblock %}
+
+{% block lab_left %}
+
+    <h3>
+        用户查询
+        <span class="en">User Lookup</span>
+    </h3>
+
+    <form method="POST">
+
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <label for="username">
+            用户名 Username
+        </label>
+
+        <input
+            type="text"
+            id="username"
+            name="username"
+            value="{{ username or '' }}"
+            placeholder="Enter username"
+            required>
+
+        <button type="submit">
+            查询 Search
+        </button>
+
+    </form>
+
+    <form method="POST" action="/labs/sql/reset" class="reset-form">
+
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <button type="submit" class="ghost">
+            恢复实验数据 Reset Lab Data
+        </button>
+
+        <span class="hint-note">
+
+            把靶子用户恢复成最初的 4 个。
+            数据被改乱了、或者想重新从头练一遍时点这里。
+            只重建实验数据，不影响平台账号。
+
+        </span>
+
+    </form>
+
+    <hr>
+
+    {% if completed %}
+
+    <div class="completed-bar">
+
+        <b>
+            LEVEL 1 COMPLETED
+        </b>
+
+        <br>
+
+        实验成功！你的输入改变了原本的 SQL 查询逻辑。
+
+        <br>
+
+        <span class="en">
+            Experiment completed! Your input changed the original SQL query logic.
+        </span>
+
+    </div>
+
+    {% endif %}
+
+    {% if result is not none %}
+
+        <h3>
+            查询结果
+            <span class="en">Query Result</span>
+        </h3>
+
+        {% if result %}
+
+            <p class="meta">
+
+                本次返回 <b>{{ rows_returned }}</b> 行 · 正常应只返回
+                <b>{{ expected_rows }}</b> 行
+
+                <br>
+
+                <span class="en">
+                    {{ rows_returned }} row(s) returned · expected {{ expected_rows }}
+                </span>
+
+            </p>
+
+            <table class="result-table {% if completed %}attack{% endif %}">
+
+                <thead>
+
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Password</th>
+                        <th>Role</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for user in result %}
+
+                    <tr {% if completed and not loop.first %}class="leaked"{% endif %}>
+
+                        <td>{{ user[0] }}</td>
+                        <td>{{ user[1] }}</td>
+                        <td>{{ user[2] }}</td>
+                        <td>{{ user[3] }}</td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+            {% if completed %}
+
+            <p class="hint-note">
+
+                红色高亮的是"多出来"的用户：
+                这些数据本来不该被这一次查询看到。
+
+                <br>
+
+                Rows in red are the extra users this query should never have returned.
+
+            </p>
+
+            {% endif %}
+
+            <h4>
+                原始数据库输出
+                <span class="en">Raw Output</span>
+            </h4>
+
+            <pre>{% for user in result %}{{ user }}
+{% endfor %}</pre>
+
+        {% else %}
+
+            <p>
+
+                没有查到用户。
+
+                <br>
+
+                No user found.
+
+            </p>
+
+        {% endif %}
+
+    {% endif %}
+
+{% endblock %}
+
+{% block backend_note %}
+
+    <p class="hint-note">
+
+        注意最后一行：整条 SQL 被当成一个字符串直接交给数据库执行，
+        中间没有任何参数化处理。
+
+        <br>
+
+        The whole statement is handed to the database as one string,
+        with no parameterization at all.
+
+    </p>
+
+{% endblock %}

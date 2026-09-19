@@ -1,0 +1,309 @@
+{% extends "lab_base.html" %}
+
+{# ============================================================
+   SSRF Level 1
+   左侧：URL 表单 + 服务端请求结果（响应体原样展示）
+   ============================================================ #}
+
+{% block lab_head %}
+
+    <p>
+        <a href="/labs/ssrf">
+            ← 返回 SSRF 实验
+        </a>
+    </p>
+
+    <h1>
+
+        Level 1 服务端请求伪造
+
+        <span class="sub">
+            Server-Side Request Forgery
+        </span>
+
+    </h1>
+
+    <p class="lead">
+
+        学习借服务器之手，访问只有它才够得着的内部资源。
+
+        <br>
+
+        Learn to make the server reach internal resources that only it can see.
+
+    </p>
+
+    <p class="meta">
+
+        <span class="badge plain">
+            难度 Difficulty：Intermediate 中级
+        </span>
+
+        <span class="badge plain">
+            目标 Goal：让服务器替你请求到一个内部接口
+        </span>
+
+    </p>
+
+{% endblock %}
+
+{% block lab_intro %}
+
+    <h2>
+        实验说明
+        <span class="sub">Description</span>
+    </h2>
+
+    <p>
+
+        这是一个"网页快照"功能：你把网址填进来，<b>服务器</b>去把页面抓回来给你看。
+        它校验了协议（只允许 http / https），但<b>没有校验目标是谁</b>。
+
+        <br>
+
+        This is a page-snapshot feature: you supply a URL and <b>the server</b>
+        fetches it for you. The scheme is validated; the destination is not.
+
+    </p>
+
+    <p>
+
+        <b>通关判定：</b>三个条件同时成立即视为通关 ——
+        ① 请求成功；② 目标地址是<b>内网 / 环回地址</b>
+        （不是随便抓个外网网页）；③ 响应里出现了内部标记
+        <code>{{ internal_marker }}</code>。
+
+        <br>
+
+        <span class="en">
+            <b>Completion rule:</b> the request succeeds, the destination is an
+            internal or loopback address, and the response contains the internal
+            marker <code>{{ internal_marker }}</code>.
+        </span>
+
+    </p>
+
+    <p class="hint-note">
+
+        这台服务器自己就在 <code>127.0.0.1</code> 上跑着，并且暴露了两个内部接口
+        （<code>/internal/...</code>），它们故意不做登录校验 ——
+        真实世界的内网服务经常就是这样。
+
+        <br>
+
+        This server listens on <code>127.0.0.1</code> and exposes two internal
+        endpoints (<code>/internal/...</code>) with no authentication — exactly like
+        plenty of real internal services.
+
+    </p>
+
+{% endblock %}
+
+{% block lab_left %}
+
+    <h3>
+        网页快照
+        <span class="en">Page Snapshot</span>
+    </h3>
+
+    <form method="POST">
+
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <label for="url">
+            网址 URL
+        </label>
+
+        <input
+            type="text"
+            id="url"
+            name="url"
+            value="{{ url or '' }}"
+            placeholder="http://example.com"
+            required>
+
+        <button type="submit">
+            抓取 Fetch
+        </button>
+
+    </form>
+
+    <p class="hint-note">
+
+        超时 {{ timeout }} 秒，响应最多取 8 KB。
+        {% if not allow_external %}
+            <br>当前配置为<b>只允许本机地址</b>（MINISEC_SSRF_ALLOW_EXTERNAL=0）。
+        {% endif %}
+
+    </p>
+
+    <hr>
+
+    {% if completed %}
+
+    <div class="completed-bar">
+
+        <b>
+            SSRF SUCCESSFUL
+        </b>
+
+        <br>
+
+        实验成功！你让服务器替你访问到了一个内部接口。
+
+        <br>
+
+        <span class="en">
+            Experiment completed! You made the server reach an internal endpoint
+            on your behalf.
+        </span>
+
+    </div>
+
+    {% endif %}
+
+    {% if fetched %}
+
+        <h3>
+            请求结果
+            <span class="en">Request Result</span>
+        </h3>
+
+        <table class="result-table {% if completed %}attack{% endif %}">
+
+            <thead>
+                <tr>
+                    <th>项目 Item</th>
+                    <th>值 Value</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                <tr>
+                    <td>服务器请求的 URL</td>
+                    <td><code>{{ fetched.url }}</code></td>
+                </tr>
+
+                <tr>
+                    <td>目标主机 Host</td>
+                    <td><code>{{ fetched.host }}</code></td>
+                </tr>
+
+                <tr {% if fetched.internal %}class="leaked"{% endif %}>
+                    <td>是否内网地址</td>
+                    <td>
+                        {% if fetched.internal %}
+                            <b>是 YES</b>
+                        {% else %}
+                            否 NO
+                        {% endif %}
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>响应状态</td>
+                    <td>{{ fetched.status }}</td>
+                </tr>
+
+                <tr>
+                    <td>命中的内部标记</td>
+                    <td>
+                        {% if internal_marker in fetched.body %}
+                            <b>是 YES</b>
+                        {% else %}
+                            否 NO
+                        {% endif %}
+                    </td>
+                </tr>
+
+            </tbody>
+
+        </table>
+
+        {% if fetched.error %}
+
+            <div class="alert error">
+                {{ fetched.error }}
+            </div>
+
+        {% else %}
+
+            <h4>
+                服务器拿到的响应体
+                <span class="en">Response Body</span>
+            </h4>
+
+            <pre>{{ fetched.body }}</pre>
+
+            <p class="hint-note">
+
+                这段内容不是你浏览器抓的，是<b>服务器</b>抓回来交给你的。
+                如果这个地址在你的网络里访问不到，而在服务器的网络里访问得到 ——
+                那么你就已经借到了服务器的网络位置。
+
+                <br>
+
+                This is what the <b>server</b> fetched, not your browser. If the
+                address is unreachable from where you sit but reachable from the
+                server, you just borrowed the server's network position.
+
+            </p>
+
+        {% endif %}
+
+    {% endif %}
+
+{% endblock %}
+
+{% block backend_note %}
+
+    <p class="hint-note">
+
+        代码只问了「这是什么协议」，没有问「这是谁」。
+        SSRF 的所有危害都从这一个缺口进来。
+
+        <br>
+
+        The code asks "which scheme is this", never "who is this". Every SSRF
+        consequence enters through that one gap.
+
+    </p>
+
+{% endblock %}
+
+{% block artifact_extra %}
+
+    <h4>
+        演示用地址
+        <span class="en">Demo Target</span>
+    </h4>
+
+    <p>
+
+        本关的内部靶子：<code>{{ demo_url }}</code>
+
+        <br>
+
+        <span class="en">
+            The internal target for this level:
+            <code>{{ demo_url }}</code>
+        </span>
+
+    </p>
+
+    <p class="hint-note">
+
+        顺带一提：真实云环境里最经典的目标是元数据服务
+        <code>169.254.169.254</code>，拿到的往往是临时凭证 ——
+        一次 SSRF 直接等于云账号失守。
+
+        <br>
+
+        For context: the classic cloud target is the metadata service at
+        <code>169.254.169.254</code>. What it returns is usually temporary
+        credentials, so one SSRF can mean a compromised cloud account.
+
+    </p>
+
+{% endblock %}

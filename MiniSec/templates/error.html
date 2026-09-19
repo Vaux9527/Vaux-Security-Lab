@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header class="page-head">
+
+    <h1>
+
+        {{ code }}
+
+        <span class="sub">
+
+            {% if title_zh %}{{ title_zh }} · {% endif %}{{ title_en }}
+
+        </span>
+
+    </h1>
+
+</header>
+
+<hr>
+
+<section>
+
+    <p>
+        {{ message_zh }}
+    </p>
+
+    <p class="en">
+        {{ message_en }}
+    </p>
+
+    <p>
+
+        <a class="lab-button" href="/">
+            返回首页
+            <br>
+            Back to Home
+        </a>
+
+        <a class="lab-button" href="/labs">
+            返回实验列表
+            <br>
+            Back to Labs
+        </a>
+
+    </p>
+
+</section>
+
+{% endblock %}

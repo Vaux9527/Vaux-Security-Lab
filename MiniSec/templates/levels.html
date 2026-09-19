@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header class="page-head">
+
+    <p>
+        <a href="/labs">
+            ← 返回实验列表 Back to Labs
+        </a>
+    </p>
+
+    <h1>
+
+        {{ lab_info.title }}
+
+        <span class="sub">
+            {{ lab_info.title_en }}
+        </span>
+
+    </h1>
+
+    <p class="lead">
+
+        {{ lab_info.description }}
+
+        <br>
+
+        {{ lab_info.description_en }}
+
+    </p>
+
+</header>
+
+<hr>
+
+<section>
+
+    <h2>
+        实验等级
+        <span class="sub">Levels</span>
+    </h2>
+
+    <p class="meta">
+
+        本实验共 {{ levels|length }} 关，已通关
+        <b>{{ cleared_count }}</b> 关 · Total {{ levels|length }} level(s),
+        <b>{{ cleared_count }}</b> cleared
+
+    </p>
+
+    {% for level in levels %}
+
+    <div class="level-row">
+
+        <h3>
+
+            {{ level.title }}
+
+            <span class="sub">
+                {{ level.title_en }}
+            </span>
+
+        </h3>
+
+        <p class="meta">
+
+            {% if level.id in cleared_levels %}
+
+                <span class="badge cleared">
+                    ✅ 已通关 Cleared
+                </span>
+
+            {% elif level.status == "ready" %}
+
+                <span class="badge ready">
+                    可进入 Ready
+                </span>
+
+            {% else %}
+
+                <span class="badge wip">
+                    开发中 Coming Soon
+                </span>
+
+            {% endif %}
+
+        </p>
+
+        <p>
+
+            {{ level.description }}
+
+            <br>
+
+            <span class="en">
+                {{ level.description_en }}
+            </span>
+
+        </p>
+
+        {% if level.status == "ready" %}
+
+            <a class="lab-button" href="{{ level.url }}">
+                进入实验
+                <br>
+                Enter Level
+            </a>
+
+        {% else %}
+
+            <span class="lab-button disabled">
+                暂未开放
+                <br>
+                Not Available
+            </span>
+
+        {% endif %}
+
+    </div>
+
+    {% if not loop.last %}
+        <hr>
+    {% endif %}
+
+    {% endfor %}
+
+</section>
+
+{% endblock %}

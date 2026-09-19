@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+
+    {% if messages %}
+
+        {% for category, message in messages %}
+
+        <div class="alert {{ category }}">
+            {{ message }}
+        </div>
+
+        {% endfor %}
+
+    {% endif %}
+
+{% endwith %}
+
+<header class="page-head">
+
+    <h1>
+
+        MiniSec Vulnerability Lab
+
+        <span class="sub">
+            网络安全漏洞实验平台
+        </span>
+
+    </h1>
+
+    <p class="lead">
+
+        一个面向学习者的 Web 漏洞教学靶场：
+        从漏洞原理，到动手利用，再到安全修复。
+
+        <br>
+
+        A hands-on web security lab: understand the vulnerability,
+        exploit it, then learn how to fix it.
+
+    </p>
+
+</header>
+
+<hr>
+
+<section>
+
+    <h2>
+        学习路线
+        <span class="sub">Learning Path</span>
+    </h2>
+
+    <ol class="steps">
+
+        <li>
+            漏洞原理学习
+            <span class="en">Background</span>
+        </li>
+
+        <li>
+            实验环境操作
+            <span class="en">Laboratory</span>
+        </li>
+
+        <li>
+            漏洞利用验证
+            <span class="en">Verification</span>
+        </li>
+
+        <li>
+            攻击过程分析
+            <span class="en">Analysis</span>
+        </li>
+
+        <li>
+            安全修复学习
+            <span class="en">Fix</span>
+        </li>
+
+    </ol>
+
+</section>
+
+<hr>
+
+<section>
+
+    <h2>
+        当前状态
+        <span class="sub">Current Status</span>
+    </h2>
+
+    {% if session.get("username") %}
+
+        <p>
+
+            当前用户 Current user：
+            <b>{{ session.get("username") }}</b>
+
+            <br>
+
+            状态 Status：已登录 Logged In
+
+        </p>
+
+    {% else %}
+
+        <p>
+
+            未登录 Not logged in。
+            请先<a href="/login">登录 Login</a>，再进入漏洞实验。
+
+            <br>
+
+            Please <a href="/login">log in</a> first to enter the labs.
+
+        </p>
+
+    {% endif %}
+
+    {% if level_total %}
+
+    <p>
+
+        实验进度 Lab progress：已通关
+        <b>{{ cleared_total }}</b> / {{ level_total }} 关
+
+        <br>
+
+        <span class="en">
+            Cleared {{ cleared_total }} of {{ level_total }} levels.
+        </span>
+
+    </p>
+
+    {% endif %}
+
+    <p>
+
+        <a class="lab-button" href="/labs">
+            进入漏洞实验
+            <br>
+            Enter Labs
+        </a>
+
+    </p>
+
+</section>
+
+<hr>
+
+<section>
+
+    <h2>
+        平台介绍
+        <span class="sub">About MiniSec</span>
+    </h2>
+
+    <p>
+
+        MiniSec 是一个用于学习 Web 安全漏洞原理的个人实验平台。
+        所有漏洞都是<b>故意保留</b>的，并且只存在于隔离的实验靶子数据里，
+        不会影响平台自身的账号数据。
+
+        <br><br>
+
+        MiniSec is a personal laboratory for learning web security
+        vulnerabilities. Every vulnerability is intentional and lives only
+        inside isolated lab data, separate from the platform's own accounts.
+
+    </p>
+
+</section>
+
+{% endblock %}
