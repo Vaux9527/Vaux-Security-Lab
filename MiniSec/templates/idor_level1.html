@@ -1,0 +1,423 @@
+{% extends "lab_base.html" %}
+
+{# ============================================================
+   越权访问 Level 1（水平越权 / IDOR）
+   左侧：身份切换 + 我的笔记列表 + 当前打开的笔记详情
+   ============================================================ #}
+
+{% block lab_head %}
+
+    <p>
+        <a href="/labs/idor">
+            ← 返回越权访问实验
+        </a>
+    </p>
+
+    <h1>
+
+        Level 1 水平越权
+
+        <span class="sub">
+            Insecure Direct Object Reference
+        </span>
+
+    </h1>
+
+    <p class="lead">
+
+        学习「认证」和「授权」的区别：你已经登录了，
+        但这条数据到底该不该给你看？
+
+        <br>
+
+        Learn the difference between authentication and authorization: you are
+        logged in, but should this record be yours to read?
+
+    </p>
+
+    <p class="meta">
+
+        <span class="badge plain">
+            难度 Difficulty：Beginner+ 入门进阶
+        </span>
+
+        <span class="badge plain">
+            目标 Goal：读到一条不属于当前身份的笔记
+        </span>
+
+    </p>
+
+{% endblock %}
+
+{% block lab_intro %}
+
+    <h2>
+        实验说明
+        <span class="sub">Description</span>
+    </h2>
+
+    <p>
+
+        这是一个「我的笔记」功能。左边的列表<b>只显示你自己的笔记</b> ——
+        这部分做对了。问题在"点开某一条"的时候：
+
+        <br>
+
+        <code>SELECT id, owner_id, title, content FROM idor_notes WHERE id = ?</code>
+
+        <br><br>
+
+        这条 SQL 里<b>没有 owner_id</b>。也就是说，
+        系统只问了「这个 id 存在吗」，没问「这条数据是你的吗」。
+
+        <br>
+
+        The query filters on <code>id</code> alone — it never asks whether the
+        record belongs to you. The list is filtered; the detail view is not.
+
+    </p>
+
+    <p>
+
+        <b>通关判定：</b>你当前身份读到的笔记，<b>它的归属和你的身份不一致</b>
+        即视为通关。判定比较的是"数据的 owner"和"你提交的身份"这两个值，
+        与关键词无关。
+
+        <br>
+
+        <span class="en">
+            <b>Completion rule:</b> the note you read must be owned by someone other
+            than your current identity. The check compares the record's owner with
+            your identity — it has nothing to do with keywords.
+        </span>
+
+    </p>
+
+    <p class="hint-note">
+
+        角色对照：平台自身的登录用的是 <code>login_required</code>，
+        它只回答「你有没有登录」（认证）。
+        <b>没有人回答「这条数据是不是你的」</b>（授权）—— 这就是本关的漏洞。
+        在 OWASP Top 10 里，它排第一：失效的访问控制。
+
+        <br>
+
+        The platform's own <code>login_required</code> answers "are you logged in"
+        (authentication). Nothing answers "is this record yours"
+        (authorization). That gap is the number one item on the OWASP Top 10.
+
+    </p>
+
+{% endblock %}
+
+{% block lab_left %}
+
+    <h3>
+        当前身份
+        <span class="en">Current Identity</span>
+    </h3>
+
+    <p>
+
+        {% for uid, name in identities %}
+
+            {% if uid == identity %}
+
+                <span class="badge ready">{{ name }}（当前）</span>
+
+            {% else %}
+
+                <a class="badge plain" href="/labs/idor/level1?as={{ uid }}">切换为 {{ name }}</a>
+
+            {% endif %}
+
+        {% endfor %}
+
+    </p>
+
+    <p class="hint-note">
+
+        真实系统里这个身份来自登录状态，用户改不了。
+        这里做成可切换的，只是为了让你能同时看到「我的视角」和「别人的数据」。
+        整个实验过程中请保持 <code>as={{ identity }}</code> 不变 ——
+        越权指的是"身份不变、数据换了"。
+
+        <br>
+
+        In a real system this identity comes from your session. It is switchable
+        here only so you can compare perspectives. Keep <code>as={{ identity }}</code>
+        fixed while you work: IDOR means the identity stays the same and the data
+        changes.
+
+    </p>
+
+    <hr>
+
+    <h3>
+        我的笔记
+        <span class="en">My Notes</span>
+    </h3>
+
+    <p class="meta">
+
+        {{ identity_name }} 名下
+        <b>{{ my_notes|length }}</b> 条 ·
+        数据库里一共有 <b>{{ total_notes }}</b> 条笔记
+
+        <br>
+
+        <span class="en">
+            {{ my_notes|length }} note(s) for {{ identity_name }} ·
+            {{ total_notes }} note(s) in the whole table
+        </span>
+
+    </p>
+
+    <table class="result-table">
+
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>标题</th>
+                <th>标记</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for row in my_notes %}
+
+            <tr {% if note_id == row[0] %}class="leaked"{% endif %}>
+
+                <td>{{ row[0] }}</td>
+                <td>{{ row[2] }}</td>
+                <td>
+                    {% if row[4] %}
+                        <span class="badge wip">私密</span>
+                    {% else %}
+                        <span class="badge plain">普通</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="/labs/idor/level1?as={{ identity }}&note_id={{ row[0] }}">查看</a>
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+    <p class="hint-note">
+
+        列表里给你的是 <code>note_id</code>，而详情接口接受的是<b>任意</b> id ——
+        数据库里另外那些笔记（属于别人、包括管理员的私密笔记）从来没在列表里出现过，
+        但它们照样能被 <code>note_id</code> 取到。
+
+        <br>
+
+        The list gives you ids, and the detail endpoint accepts <b>any</b> id. The
+        other notes in the table — owned by other people, including the
+        administrator's private one — never appear in any list, yet they can still
+        be fetched.
+
+    </p>
+
+    <form method="POST" action="/labs/idor/level1/reset" class="reset-form">
+
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <button type="submit" class="ghost">
+            恢复实验数据 Reset Lab Data
+        </button>
+
+        <span class="hint-note">
+
+            把用户和笔记恢复成最初的样子。只重建 lab_idor.db。
+
+        </span>
+
+    </form>
+
+    <hr>
+
+    {% if completed %}
+
+    <div class="completed-bar">
+
+        <b>
+            IDOR SUCCESSFUL
+        </b>
+
+        <br>
+
+        实验成功！你的身份没有变，却读到了别人的数据。
+
+        <br>
+
+        <span class="en">
+            Experiment completed! Your identity did not change, yet you read
+            someone else's data.
+        </span>
+
+    </div>
+
+    {% endif %}
+
+    {% if note %}
+
+        <h3>
+            笔记详情
+            <span class="en">Note Detail</span>
+        </h3>
+
+        <table class="result-table {% if completed %}attack{% endif %}">
+
+            <thead>
+                <tr>
+                    <th>项目 Item</th>
+                    <th>值 Value</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                <tr>
+                    <td>笔记 id</td>
+                    <td>{{ note[0] }}</td>
+                </tr>
+
+                <tr {% if note[1] != identity %}class="leaked"{% endif %}>
+                    <td>归属 owner_id</td>
+                    <td>
+                        {{ note[1] }}
+
+                        {% if owner_name %}
+
+                            （{{ owner_name }}）
+
+                        {% endif %}
+
+                        {% if note[1] != identity %}
+
+                            <b>← 不是你的</b>
+
+                        {% endif %}
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>当前身份</td>
+                    <td>{{ identity }}（{{ identity_name }}）</td>
+                </tr>
+
+                <tr>
+                    <td>标题</td>
+                    <td>{{ note[2] }}</td>
+                </tr>
+
+                <tr {% if contains_flag %}class="leaked"{% endif %}>
+                    <td>内容</td>
+                    <td>{{ note[3] }}</td>
+                </tr>
+
+            </tbody>
+
+        </table>
+
+        {% if contains_flag %}
+
+        <p class="hint-note">
+
+            这条就是管理员的私密笔记，内容里放着本关的 flag。
+
+            <br>
+
+            This is the administrator's private note and it holds the level flag.
+
+        </p>
+
+        {% endif %}
+
+    {% elif note_id %}
+
+        <p>
+
+            没有 id = {{ note_id }} 这条笔记。
+
+            <br>
+
+            No note with id = {{ note_id }}.
+
+        </p>
+
+    {% endif %}
+
+    {% if all_users %}
+
+        <h4>
+            数据库里的用户
+            <span class="en">Users in the Table</span>
+        </h4>
+
+        <p>
+
+            {% for uid, name, display, role in all_users %}
+                <code>{{ uid }}:{{ name }}</code>
+            {% endfor %}
+
+            <br>
+
+            <span class="en">
+                你只应该看到自己的笔记，但表里其实有这么多人的数据。
+            </span>
+
+        </p>
+
+    {% endif %}
+
+{% endblock %}
+
+{% block backend_note %}
+
+    <p class="hint-note">
+
+        注意列表接口和详情接口是<b>两条不同的代码路径</b>：
+        列表按 owner 过滤了，详情没有。
+        越权漏洞几乎都是这么来的 —— 一个地方做了，另一个地方忘了。
+
+        <br>
+
+        The list and the detail view are <b>two separate code paths</b>: the list
+        filters by owner, the detail does not. That is how most access-control bugs
+        are born.
+
+    </p>
+
+{% endblock %}
+
+{% block artifact_extra %}
+
+    {% if generated_sql %}
+
+    <p class="hint-note">
+
+        修复方案只有一句话：把 <code>owner_id</code> 加进 WHERE 条件
+        （<code>WHERE id = ? AND owner_id = ?</code>），
+        并且取不到时统一返回 404 而不是 403 ——
+        403 等于告诉对方"这条数据存在，只是你没权限"。
+
+        <br>
+
+        The fix is one clause: add <code>owner_id</code> to the WHERE condition and
+        return 404 rather than 403 when nothing is found. A 403 tells the attacker
+        the record exists but is not theirs.
+
+    </p>
+
+    {% endif %}
+
+{% endblock %}

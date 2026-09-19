@@ -1,0 +1,406 @@
+{% extends "lab_base.html" %}
+
+{# ============================================================
+   CSRF Level 1
+   左侧：当前身份 / 正常改邮箱表单 / 攻击者页面入口 / 靶子账号表
+   ============================================================ #}
+
+{% block lab_head %}
+
+    <p>
+        <a href="/labs/csrf">
+            ← 返回 CSRF 实验
+        </a>
+    </p>
+
+    <h1>
+
+        Level 1 跨站请求伪造
+
+        <span class="sub">
+            Cross-Site Request Forgery
+        </span>
+
+    </h1>
+
+    <p class="lead">
+
+        学习攻击者如何借你已登录的身份，在你不知情时发出一个请求。
+
+        <br>
+
+        Learn how an attacker borrows your logged-in identity to send a request
+        you never made.
+
+    </p>
+
+    <p class="meta">
+
+        <span class="badge plain">
+            难度 Difficulty：Intermediate 中级
+        </span>
+
+        <span class="badge plain">
+            目标 Goal：在你不主动改邮箱的情况下，让邮箱被改掉
+        </span>
+
+    </p>
+
+{% endblock %}
+
+{% block lab_intro %}
+
+    <h2>
+        实验说明
+        <span class="sub">Description</span>
+    </h2>
+
+    <p>
+
+        这是一个「修改资料」功能。它靠 <b>Cookie</b>（会话）来认人 ——
+        这本身没问题，问题在于它<b>没有校验这个请求是从哪来的</b>：
+
+        <br>
+
+        <code>POST /labs/csrf/level1/profile</code>
+
+        <br><br>
+
+        表单里其实带了 CSRF 令牌，但后端<b>从来没有看过它</b> ——
+        「加了但没校验」等于没加。
+
+        <br>
+
+        The form does carry a CSRF token, but the backend never validates it.
+        A token that is not checked is the same as no token.
+
+    </p>
+
+    <p>
+
+        <b>通关判定：</b>数据库里 victim 的邮箱被改成了攻击者指定的地址
+        <code>{{ attacker_email }}</code> 即视为通关。
+        判定看的是数据库里真实的值，不是你提交了什么。
+
+        <br>
+
+        <span class="en">
+            <b>Completion rule:</b> the victim's email must become
+            <code>{{ attacker_email }}</code>. The check looks at the database,
+            not at what you submitted.
+        </span>
+
+    </p>
+
+    <p class="hint-note">
+
+        <b>本项目的对照设计：</b>平台自身的接口（登录、恢复出厂…）
+        由 <code>security.py</code> 全站校验 CSRF 令牌；
+        只有这一关的靶子接口被<b>故意</b>放进豁免名单，用来演示「不校验会怎样」。
+        豁免名单在 <code>security.py</code> 里，并注明"只给靶子用"。
+
+        <br>
+
+        For contrast: this project's own endpoints are protected globally by
+        <code>security.py</code>. Only this lab's target endpoint is deliberately
+        exempted, so you can see what happens without that protection.
+
+    </p>
+
+{% endblock %}
+
+{% block lab_left %}
+
+    <h3>
+        当前身份
+        <span class="en">Current Identity</span>
+    </h3>
+
+    <p class="meta">
+
+        你已登录为 <b>{{ username }}</b>（{{ display_name }}）·
+        当前邮箱 <b>{{ email }}</b>
+
+        <br>
+
+        <span class="en">
+            Logged in as <b>{{ username }}</b> · current email <b>{{ email }}</b>
+        </span>
+
+    </p>
+
+    <p class="hint-note">
+
+        这个身份来自 Cookie（会话）。真实系统里也是这样 ——
+        而关键事实是：<b>浏览器发请求时会自动带上 Cookie</b>，
+        不管这个请求是谁发起的。
+
+        <br>
+
+        The identity comes from the session cookie — as in any real system. The key
+        fact: the browser attaches cookies <b>automatically</b>, no matter who
+        initiated the request.
+
+    </p>
+
+    <hr>
+
+    <h3>
+        修改资料
+        <span class="en">Update Profile</span>
+    </h3>
+
+    <form method="POST" action="/labs/csrf/level1/profile">
+
+        {# 表单里带了令牌 —— 但后端根本不校验它，这正是本关的漏洞 #}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <label for="email">
+            邮箱 Email
+        </label>
+
+        <input
+            type="text"
+            id="email"
+            name="email"
+            value="{{ email or '' }}"
+            placeholder="you@example.com"
+            required>
+
+        <button type="submit">
+            保存 Save
+        </button>
+
+    </form>
+
+    <p class="hint-note">
+
+        先正常用一次：把邮箱改成别的地址，然后看右侧
+        「浏览器实际发出的请求」—— 注意请求里带了什么。
+
+        <br>
+
+        Try it normally first: change your email and study the request shown on the
+        right. Note what it carries.
+
+    </p>
+
+    <hr>
+
+    <h3>
+        攻击者页面
+        <span class="en">Attacker Page</span>
+    </h3>
+
+    <p>
+
+        下面这条链接模拟「你在登录状态下，被诱导打开了一个无关网站」。
+        真实攻击里这个页面在攻击者的服务器上，你只是点进来看了它一眼。
+
+        <br>
+
+        <span class="en">
+            The link below simulates being lured onto an unrelated site while logged
+            in. In a real attack that page lives on the attacker's server.
+        </span>
+
+    </p>
+
+    <p>
+
+        <a class="lab-button" href="/labs/csrf/attacker" target="_blank">
+            打开攻击者页面
+            <br>
+            Open the Attacker Page
+        </a>
+
+    </p>
+
+    <p class="hint-note">
+
+        它里面只有一个自动提交的表单，指向上面的改邮箱接口，而且<b>没有令牌</b> ——
+        攻击者当然拿不到你的令牌。页面打开后会立刻提交，然后你回到这里看邮箱。
+
+        <br>
+
+        It contains a single self-submitting form aimed at the email endpoint, with
+        <b>no token</b> — the attacker cannot obtain yours. It submits immediately;
+        come back and look at your email.
+
+    </p>
+
+    <form method="POST" action="/labs/csrf/level1/reset" class="reset-form">
+
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <button type="submit" class="ghost">
+            恢复实验数据 Reset Lab Data
+        </button>
+
+        <span class="hint-note">
+
+            把靶子账号的邮箱改回原值（{{ original_email }}）。
+            注意这个按钮<b>照常校验令牌</b> —— 豁免只给了靶子接口。
+
+        </span>
+
+    </form>
+
+    <hr>
+
+    {% if completed %}
+
+    <div class="completed-bar">
+
+        <b>
+            CSRF SUCCESSFUL
+        </b>
+
+        <br>
+
+        实验成功！你没有主动改邮箱，它却被改掉了。
+
+        <br>
+
+        <span class="en">
+            Experiment completed! You never changed your email, yet it changed.
+        </span>
+
+    </div>
+
+    {% endif %}
+
+    <h4>
+        靶子库里的账号
+        <span class="en">Accounts in the Lab Table</span>
+    </h4>
+
+    <table class="result-table {% if completed %}attack{% endif %}">
+
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>用户名</th>
+                <th>邮箱</th>
+                <th>备注</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for row in users %}
+
+            <tr {% if row[2] == attacker_email %}class="leaked"{% endif %}>
+
+                <td>{{ row[0] }}</td>
+                <td>{{ row[1] }}</td>
+                <td><code>{{ row[2] }}</code></td>
+                <td>{{ row[3] }}</td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+    {% if completed %}
+
+    <p class="hint-note">
+
+        高亮那一行就是被改掉的邮箱。真实站点上，攻击者下一步是点「忘记密码」，
+        重置链接会发到这个邮箱 —— 账号就归他了。
+
+        <br>
+
+        The highlighted row is the hijacked email. On a real site the attacker's next
+        step is 'forgot password', and the reset link goes to that address.
+
+    </p>
+
+    {% endif %}
+
+{% endblock %}
+
+{% block backend_note %}
+
+    <p class="hint-note">
+
+        代码里两个"没做"凑成了这个漏洞：
+        <b>没校验请求来源</b>、<b>没校验那个已经放进表单的令牌</b>。
+        身份判断（Cookie）本身没问题 —— 有问题的是只做了身份判断。
+
+        <br>
+
+        Two omissions create this bug: the origin of the request is never checked,
+        and neither is the token that is already sitting in the form. Identifying the
+        user by cookie is fine; doing <em>only</em> that is not.
+
+    </p>
+
+{% endblock %}
+
+{% block artifact_extra %}
+
+    {% if last_request %}
+
+    <h4>
+        这次请求的四要素
+        <span class="en">Four Things to Notice</span>
+    </h4>
+
+    <table class="result-table">
+
+        <thead>
+            <tr>
+                <th>项目</th>
+                <th>值</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            <tr>
+                <td>Cookie（身份）</td>
+                <td>
+                    {{ "带了 —— 浏览器自动携带" if last_request.cookie_present else "没有" }}
+                </td>
+            </tr>
+
+            <tr {% if not last_request.had_token %}class="leaked"{% endif %}>
+                <td>CSRF 令牌</td>
+                <td>{{ "带了（但服务端没校验）" if last_request.had_token else "没有" }}</td>
+            </tr>
+
+            <tr>
+                <td>Referer（来源页面）</td>
+                <td><code>{{ last_request.referer }}</code></td>
+            </tr>
+
+            <tr>
+                <td>请求体</td>
+                <td><code>email={{ last_request.email }}</code></td>
+            </tr>
+
+        </tbody>
+
+    </table>
+
+    <p class="hint-note">
+
+        修复要做的，就是把第二行和第三行变成"必须检查"：
+        令牌要被<b>校验</b>，来源要能对得上本站；
+        再加上 SameSite Cookie，跨站请求连 Cookie 都带不上。
+
+        <br>
+
+        The fix turns rows two and three into mandatory checks: validate the token,
+        verify the origin, and add SameSite so cross-site requests cannot even carry
+        the cookie.
+
+    </p>
+
+    {% endif %}
+
+{% endblock %}

@@ -1,0 +1,331 @@
+{% extends "lab_base.html" %}
+
+{# ============================================================
+   SQL Level 2 登录绕过
+   页面骨架由 lab_base.html 提供，这里只写这一关独有的内容。
+   ============================================================ #}
+
+{% block lab_head %}
+
+    <p>
+        <a href="/labs/sql">
+            ← 返回 SQL Injection Lab
+        </a>
+    </p>
+
+    <h1>
+
+        Level 2 登录绕过
+
+        <span class="sub">
+            Login Bypass
+        </span>
+
+    </h1>
+
+    <p class="lead">
+
+        学习利用 SQL 注入绕过身份验证，以及为什么认证逻辑不应该写进 SQL。
+
+        <br>
+
+        Learn how SQL injection bypasses authentication, and why an
+        authentication check should never live inside a SQL statement.
+
+    </p>
+
+    <p class="meta">
+
+        <span class="badge plain">
+            难度 Difficulty：Beginner+ 入门进阶
+        </span>
+
+        <span class="badge plain">
+            目标 Goal：以 admin 身份登录，但不使用它的真实密码
+        </span>
+
+    </p>
+
+{% endblock %}
+
+{% block lab_intro %}
+
+    <h2>
+        实验说明
+        <span class="sub">Description</span>
+    </h2>
+
+    <p>
+
+        这是一个登录表单。后端代码<b>故意</b>把用户名和密码直接拼接进 SQL 语句，
+        并且把「能不能登录」这个判断<b>整个写进了 SQL 的 WHERE 条件里</b>：
+
+        <br>
+
+        <code>WHERE username = '...' AND password = '...'</code>
+
+        <br><br>
+
+        This is a login form. The backend <b>intentionally</b> concatenates the
+        username and password into the SQL statement, and expresses the whole
+        authentication decision as a SQL condition.
+
+    </p>
+
+    <p>
+
+        <b>通关判定：</b>登录语句返回了管理员账号
+        <code>{{ target_user }}</code> 的记录，<b>并且</b>你提交的账号密码
+        并不是数据库里的合法凭据——换句话说，你要证明自己是
+        <b>绕过了密码</b>，而不是知道密码。
+
+        <br>
+
+        <span class="en">
+            <b>Completion rule:</b> the login statement must return the
+            administrator account <code>{{ target_user }}</code>, <b>and</b> the
+            credentials you submitted must not be a valid pair in the database.
+            You have to <b>bypass</b> the password, not know it.
+        </span>
+
+    </p>
+
+    <p class="hint-note">
+
+        提示：直接输入 admin / admin123 是<b>正常登录</b>，不算通关。
+        本关要的是不靠密码进去。
+
+        <br>
+
+        Note: admin / admin123 is a <b>normal</b> login and does not count.
+        This level requires getting in without the password.
+
+    </p>
+
+{% endblock %}
+
+{% block lab_left %}
+
+    <h3>
+        用户登录
+        <span class="en">Login Form</span>
+    </h3>
+
+    <form method="POST">
+
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <label for="username">
+            用户名 Username
+        </label>
+
+        <input
+            type="text"
+            id="username"
+            name="username"
+            value="{{ username or '' }}"
+            placeholder="Enter username"
+            required>
+
+        <label for="password">
+            密码 Password
+        </label>
+
+        <input
+            type="text"
+            id="password"
+            name="password"
+            placeholder="Enter password">
+
+        <button type="submit">
+            登录 Login
+        </button>
+
+    </form>
+
+    <p class="hint-note">
+
+        密码框故意用普通文本框（不是圆点遮蔽），
+        方便你观察自己构造的 payload 究竟长什么样。
+
+        <br>
+
+        The password field is a plain text box on purpose, so you can see
+        exactly what your payload looks like.
+
+    </p>
+
+    <form method="POST" action="/labs/sql/level2/reset" class="reset-form">
+
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <button type="submit" class="ghost">
+            恢复实验数据 Reset Lab Data
+        </button>
+
+        <span class="hint-note">
+
+            把登录靶子恢复成最初的 4 个账号。
+            只重建 Level 2 自己的靶子库（lab_login.db），
+            不影响 Level 1 的数据，也不影响平台账号。
+
+        </span>
+
+    </form>
+
+    <hr>
+
+    {% if completed %}
+
+    <div class="completed-bar">
+
+        <b>
+            LOGIN BYPASSED
+        </b>
+
+        <br>
+
+        实验成功！你没有使用合法凭据，却以「{{ logged_in_as }}」的身份进入了系统。
+
+        <br>
+
+        <span class="en">
+            Experiment completed! You got in as "{{ logged_in_as }}"
+            without any valid credentials.
+        </span>
+
+    </div>
+
+    {% endif %}
+
+    {% if result is not none %}
+
+        <h3>
+            登录结果
+            <span class="en">Login Result</span>
+        </h3>
+
+        {% if result %}
+
+            <p class="meta">
+
+                {% if logged_in_as %}
+
+                    系统认为你是：<b>{{ logged_in_as }}</b>
+
+                {% endif %}
+
+                <br>
+
+                <span class="en">
+                    The statement returned {{ result|length }} row(s);
+                    the session identity would be "{{ logged_in_as }}".
+                </span>
+
+            </p>
+
+            <table class="result-table {% if completed %}attack{% endif %}">
+
+                <thead>
+
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Role</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for user in result %}
+
+                    <tr {% if completed and loop.first %}class="leaked"{% endif %}>
+
+                        <td>{{ user[0] }}</td>
+                        <td>{{ user[1] }}</td>
+                        <td>{{ user[2] }}</td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+            {% if completed %}
+
+            <p class="hint-note">
+
+                高亮的那一行就是管理员账号：
+                你并没有它的密码，却让数据库把它交了出来。
+
+                <br>
+
+                The highlighted row is the administrator account.
+                You never had its password, yet the query handed it over.
+
+            </p>
+
+            {% endif %}
+
+            <p class="hint-note">
+
+                注意：本关<b>不会</b>真的改变你的平台登录状态。
+                靶子账号（lab_login.db）和平台账号（platform.db）是两个库，
+                实验里的「登录」只是一次查询的结果——
+                这正是「平台库与靶子库分家」这个设计决策的意义。
+
+                <br>
+
+                Note: this level does <b>not</b> change your platform session.
+                Lab accounts (lab_login.db) and platform accounts (platform.db)
+                live in different databases; the "login" here is only the
+                result of one query.
+
+            </p>
+
+            <h4>
+                原始数据库输出
+                <span class="en">Raw Output</span>
+            </h4>
+
+            <pre>{% for user in result %}{{ user }}
+{% endfor %}</pre>
+
+        {% else %}
+
+            <p>
+
+                用户名或密码错误，登录语句没有返回任何记录。
+
+                <br>
+
+                Wrong username or password: the login statement returned nothing.
+
+            </p>
+
+        {% endif %}
+
+    {% endif %}
+
+{% endblock %}
+
+{% block backend_note %}
+
+    <p class="hint-note">
+
+        注意两件事：① 用户名和密码都被拼进同一条 SQL；
+        ② 「查到记录就登录成功」——
+        认证判断被完全交给了 SQL 条件。
+
+        <br>
+
+        Two things to notice: (1) both the username and the password are
+        concatenated into one statement; (2) "a row came back, so log in" —
+        the whole authentication decision is delegated to SQL.
+
+    </p>
+
+{% endblock %}

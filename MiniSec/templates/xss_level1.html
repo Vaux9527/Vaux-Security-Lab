@@ -1,0 +1,310 @@
+{% extends "lab_base.html" %}
+
+{# ============================================================
+   XSS Level 1 反射型
+   左侧：搜索框 + 真实的回显（故意不转义，浏览器里会真的执行）
+   ============================================================ #}
+
+{% block lab_head %}
+
+    <p>
+        <a href="/labs/xss">
+            ← 返回 XSS Lab
+        </a>
+    </p>
+
+    <h1>
+
+        Level 1 反射型XSS
+
+        <span class="sub">
+            Reflected XSS
+        </span>
+
+    </h1>
+
+    <p class="lead">
+
+        学习用户输入被当作脚本执行的过程：你输入的东西，
+        会原样变成页面的一部分。
+
+        <br>
+
+        Learn how user input ends up being executed as a script: what you type
+        becomes part of the page itself.
+
+    </p>
+
+    <p class="meta">
+
+        <span class="badge plain">
+            难度 Difficulty：Beginner 入门
+        </span>
+
+        <span class="badge plain">
+            目标 Goal：让浏览器执行你注入的脚本
+        </span>
+
+    </p>
+
+{% endblock %}
+
+{% block lab_intro %}
+
+    <h2>
+        实验说明
+        <span class="sub">Description</span>
+    </h2>
+
+    <p>
+
+        这是一个站内搜索。它做了"防护"，但只做了一件很弱的事：
+
+        <br>
+
+        <code>payload = re.sub(r"&lt;script", "", keyword)</code>
+
+        <br><br>
+
+        也就是说，它只把 <code>&lt;script</code> 这七个字符删掉，
+        然后把剩下的内容<b>原样拼进 HTML</b>，没有任何输出编码。
+
+        <br>
+
+        This search box does apply a "protection": it strips the seven characters
+        <code>&lt;script</code>, then concatenates the rest into the HTML verbatim,
+        with no output encoding at all.
+
+    </p>
+
+    <p>
+
+        <b>通关判定：</b>过滤之后真正进入页面的内容里，仍然存在
+        <b>能被浏览器执行的 HTML 结构</b>（脚本标签、事件属性、可嵌入标签、
+        <code>javascript:</code> 伪协议之一）即视为通关。
+        判定看的是"页面里到底变成了什么"，不是"输入里有没有某个关键词"。
+
+        <br>
+
+        <span class="en">
+            <b>Completion rule:</b> after filtering, the content that reaches the
+            page must still contain an executable HTML construct — a script tag, an
+            event attribute, an embeddable tag, or a <code>javascript:</code> URL.
+            The check is what the page ends up containing, not which keywords you typed.
+        </span>
+
+    </p>
+
+    <p class="hint-note">
+
+        这一关跑在本地，浏览器不会拦住你的脚本 ——
+        如果注入成功，你会<b>真的看到弹窗</b>。
+        另外这一关<b>不做任何过滤</b>：它的目的是先让你看清最基本的因果关系。
+
+        <br>
+
+        This lab runs locally and nothing blocks your script: if the injection
+        works, you will <b>actually see the alert</b>. This level also filters
+        <b>nothing</b>, so that the basic cause and effect is unmistakable.
+
+    </p>
+
+    {% include "_xss_cheatsheet.html" %}
+
+{% endblock %}
+
+{% block lab_left %}
+
+    <h3>
+        站内搜索
+        <span class="en">Site Search</span>
+    </h3>
+
+    <form method="GET">
+
+        <label for="q">
+            搜索关键词 Keyword
+        </label>
+
+        <input
+            type="text"
+            id="q"
+            name="q"
+            value="{{ keyword or '' }}"
+            placeholder="Try: hello"
+            required>
+
+        <button type="submit">
+            搜索 Search
+        </button>
+
+    </form>
+
+    <p class="hint-note">
+
+        也可以直接改地址栏里的参数：
+        <code>/labs/xss/level1?q=你的payload</code>。
+        反射型 XSS 的现实形态就是这样一条链接。
+
+        <br>
+
+        You can also edit the URL directly:
+        <code>/labs/xss/level1?q=payload</code>. That link is what reflected XSS
+        looks like in the wild.
+
+    </p>
+
+    <hr>
+
+    {% if keyword %}
+
+        <h3>
+            搜索结果
+            <span class="en">Search Result</span>
+        </h3>
+
+        {% if completed %}
+
+        <div class="completed-bar">
+
+            <b>
+                XSS SUCCESSFUL
+            </b>
+
+            <br>
+
+            实验成功！页面里出现了一段可执行的结构：{{ executed }}
+
+            <br>
+
+            <span class="en">
+                Experiment completed! An executable construct reached the page.
+            </span>
+
+        </div>
+
+        {% endif %}
+
+        <p class="meta">
+
+            下面这段是页面<b>真实输出</b>的 HTML。如果它包含可执行结构，
+            你的浏览器现在就会执行它 —— 这一块不是截图，是活的。
+
+            <br>
+
+            <span class="en">
+                The block below is the page's real output. If it contains an
+                executable construct, your browser runs it right now.
+            </span>
+
+        </p>
+
+        {# ⚠️ 故意漏洞：这里把过滤后的输入当成 HTML 直接输出（等价于 Jinja2 的 |safe） #}
+        <div class="xss-stage">
+
+            {{ rendered|safe }}
+
+        </div>
+
+        {% if completed %}
+
+        <p class="hint-note">
+
+            命中的是：<b>{{ executed }}</b>。
+            靶场只挡了 <code>&lt;script</code>，
+            而浏览器执行 JavaScript 的方式远不止一种。
+
+            <br>
+
+            Detected: <b>{{ executed }}</b>. The lab only blocks
+            <code>&lt;script</code>, but a browser has many ways to run script.
+
+        </p>
+
+        {% else %}
+
+        <p class="hint-note">
+
+            目前这段 HTML 里没有可执行结构。
+            试试右键 →「查看页面源代码」，搜一下你输入的内容，
+            看它在 HTML 里长什么样。
+
+            <br>
+
+            No executable construct yet. Try View Source and search for your input
+            to see what it looks like inside the HTML.
+
+        </p>
+
+        {% endif %}
+
+    {% endif %}
+
+{% endblock %}
+
+{% block backend_note %}
+
+    <p class="hint-note">
+
+        注意第二行：过滤只处理了一种写法。
+        <b>黑名单的问题是"你永远列不全"</b> ——
+        漏掉一种写法，防线就等于没有。
+
+        <br>
+
+        Note the filter handles exactly one pattern. The problem with blacklists is
+        that you can never list everything: miss one variant and the defence is gone.
+
+    </p>
+
+{% endblock %}
+
+{% block artifact_extra %}
+
+    {% if filtered is not none and filtered != keyword %}
+
+    <h4>
+        过滤前后的对比
+        <span class="en">Before / After Filter</span>
+    </h4>
+
+    <table class="result-table">
+
+        <thead>
+            <tr>
+                <th>阶段 Stage</th>
+                <th>内容 Content</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            <tr>
+                <td>你输入的原样</td>
+                <td><code>{{ keyword }}</code></td>
+            </tr>
+
+            <tr>
+                <td>过滤之后</td>
+                <td><code>{{ filtered }}</code></td>
+            </tr>
+
+        </tbody>
+
+    </table>
+
+    <p class="hint-note">
+
+        靶场删掉了 <code>&lt;script</code>，但你剩下的部分照样能执行 ——
+        这就是"过滤了，但没防住"。
+
+        <br>
+
+        The lab removed <code>&lt;script</code>, yet what is left still executes.
+        Filtered, but not defended.
+
+    </p>
+
+    {% endif %}
+
+{% endblock %}

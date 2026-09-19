@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header class="page-head">
+
+    <h1>
+
+        MiniSec Vulnerability Labs
+
+        <span class="sub">
+            漏洞实验列表
+        </span>
+
+    </h1>
+
+    <p class="lead">
+
+        选择一个实验进入。每个实验都按"原理 → 操作 → 分析 → 修复"的顺序进行。
+
+        <br>
+
+        Pick a lab. Each one follows: principle → hands-on → analysis → fix.
+
+    </p>
+
+    {% if level_total %}
+
+    <p class="meta">
+
+        <span class="badge plain">
+            总进度 Progress：{{ cleared_total }} / {{ level_total }} 关
+        </span>
+
+    </p>
+
+    {% endif %}
+
+</header>
+
+<hr>
+
+{% for lab in labs %}
+
+<section class="lab-row">
+
+    <h2>
+
+        {{ lab.title }}
+
+        <span class="sub">
+            {{ lab.title_en }}
+        </span>
+
+    </h2>
+
+    <p class="meta">
+
+        {% if lab.status == "ready" %}
+
+            <span class="badge ready">
+                可进入 Ready
+            </span>
+
+        {% else %}
+
+            <span class="badge wip">
+                开发中 Coming Soon
+            </span>
+
+        {% endif %}
+
+        {% if lab.total %}
+
+            {% if lab.cleared == lab.total %}
+
+                <span class="badge cleared">
+                    ✅ 全部通关 {{ lab.cleared }} / {{ lab.total }}
+                </span>
+
+            {% else %}
+
+                <span class="badge plain">
+                    已通关 {{ lab.cleared }} / {{ lab.total }}
+                </span>
+
+            {% endif %}
+
+        {% endif %}
+
+    </p>
+
+    <p>
+
+        {{ lab.description }}
+
+        <br>
+
+        <span class="en">
+            {{ lab.description_en }}
+        </span>
+
+    </p>
+
+    {% if lab.status == "ready" and lab.entry_url %}
+
+        <a class="lab-button" href="{{ lab.entry_url }}">
+            进入实验
+            <br>
+            Enter Lab
+        </a>
+
+    {% else %}
+
+        <span class="lab-button disabled">
+            暂未开放
+            <br>
+            Not Available
+        </span>
+
+        <p class="hint-note">
+
+            这个实验还在开发中。列表里先占位，避免点进去看到空白页面。
+
+            <br>
+
+            This lab is still in development, so it is listed but not yet open.
+
+        </p>
+
+    {% endif %}
+
+</section>
+
+<hr>
+
+{% endfor %}
+
+{% endblock %}

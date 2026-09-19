@@ -1,0 +1,341 @@
+{# ============================================================
+   关卡页基模板（所有关卡的公共骨架）
+
+   一个关卡页面由五段组成（教学上称为"五段式"）：
+       背景原理 → 动手操作 → 攻击分析 → 漏洞成因 → 修复方法
+
+   其中"操作区 / 分析区 / 攻击分析 / 分层提示 / 通关后的成因与修复"
+   对每一关都是同一套结构，只有内容不同，所以抽到这个基模板里。
+
+   子模板需要提供（用 block 填内容）：
+       lab_head            标题区（标题、难度、目标）
+       lab_intro           实验说明（原理 + 通关判定规则）
+       lab_left            左侧：操作表单 + 结果
+       backend_note        右侧：后端代码下面那句点评（可选）
+       lab_bottom          页面底部（默认渲染"漏洞与修复 + 实验总结"）
+
+   子模板需要提供（用变量传内容）：
+       vulnerable_code / secure_code          坏代码 / 好代码
+       hints                                  分层提示列表
+       summary                                实验总结（points + 口诀 + 下一关）
+       artifact_title / artifact_body / artifact_note
+                                              关键证据块（不同关卡不一样：
+                                              SQL 语句 / 渲染出的 HTML /
+                                              保存路径 / 请求与响应 / 执行的命令）
+       analysis_zh / analysis_en               攻击分析文字
+       completed / is_attack                   是否通关 / 是否是可疑输入
+       ok_label                                通关横幅上的字（可选）
+       needs_login_hint                        （未用，占位）
+============================================================ #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+
+    {% if messages %}
+
+        {% for category, message in messages %}
+
+        <div class="alert {{ category }}">
+            {{ message }}
+        </div>
+
+        {% endfor %}
+
+    {% endif %}
+
+{% endwith %}
+
+<header class="page-head">
+
+    {% block lab_head %}{% endblock %}
+
+    {% if cleared_before %}
+
+    <p class="meta">
+        <span class="badge cleared">
+            ✅ 这一关之前已经通关过 Cleared before
+        </span>
+    </p>
+
+    {% endif %}
+
+</header>
+
+<hr>
+
+<section>
+
+    {% block lab_intro %}{% endblock %}
+
+</section>
+
+<hr>
+
+<div class="columns">
+
+    <!-- ==================== 左侧：实验区域 ==================== -->
+
+    <div class="column">
+
+        <h2>
+            实验区域
+            <span class="sub">Laboratory</span>
+        </h2>
+
+        {% block lab_left %}{% endblock %}
+
+    </div>
+
+    <!-- ==================== 右侧：分析区域 ==================== -->
+
+    <div class="column">
+
+        <h2>
+            分析区域
+            <span class="sub">Analysis</span>
+        </h2>
+
+        <h3>
+            Backend Code 后端代码
+        </h3>
+
+        <pre>{{ vulnerable_code }}</pre>
+
+        {% block backend_note %}{% endblock %}
+
+        <hr>
+
+        <h3>
+            {{ artifact_title|default('关键证据 Evidence', true) }}
+        </h3>
+
+        {% if artifact_body %}
+
+            <pre>{{ artifact_body }}</pre>
+
+            {% if artifact_note %}
+
+            <p class="hint-note">
+                {{ artifact_note }}
+            </p>
+
+            {% endif %}
+
+        {% else %}
+
+            <p>
+
+                等待输入...
+
+                <br>
+
+                Waiting for user input...
+
+            </p>
+
+        {% endif %}
+
+        {% block artifact_extra %}{% endblock %}
+
+        <hr>
+
+        <h3>
+            Attack Analysis 攻击分析
+        </h3>
+
+        {% if analysis_zh %}
+
+            {% if completed %}
+
+                <p>
+                    <b class="ok">
+                        {{ ok_label|default('Completed 实验成功', true) }}
+                    </b>
+                </p>
+
+            {% elif is_attack %}
+
+                <p>
+                    <b class="warn">
+                        Suspicious Input Detected 检测到可疑输入
+                    </b>
+                </p>
+
+            {% endif %}
+
+            <p>
+                {{ analysis_zh }}
+            </p>
+
+            <p class="en">
+                {{ analysis_en }}
+            </p>
+
+        {% else %}
+
+            <p>
+
+                等待输入测试 Payload...
+
+                <br>
+
+                Waiting for input...
+
+            </p>
+
+        {% endif %}
+
+        <hr>
+
+        <h3>
+            Hint 提示
+        </h3>
+
+        <p class="hint-note">
+
+            卡住了再逐条展开，建议先自己想一分钟。
+
+            <br>
+
+            Open these one at a time — try to think first.
+
+        </p>
+
+        {% for hint in hints %}
+
+        <details>
+
+            <summary>
+                提示 {{ loop.index }} / Hint {{ loop.index }}
+            </summary>
+
+            <p>
+                {{ hint.zh }}
+            </p>
+
+            <p class="en">
+                {{ hint.en }}
+            </p>
+
+        </details>
+
+        {% endfor %}
+
+    </div>
+
+</div>
+
+{% block lab_bottom %}
+
+{% if completed %}
+
+<hr>
+
+<section>
+
+    <h2>
+        漏洞与修复
+        <span class="sub">Vulnerability &amp; Fix</span>
+    </h2>
+
+    <h3>
+        Vulnerable Code 有漏洞的写法
+    </h3>
+
+    <pre>{{ vulnerable_code }}</pre>
+
+    <p>
+
+        {{ fix_vulnerable_zh }}
+
+        <br>
+
+        <span class="en">
+            {{ fix_vulnerable_en }}
+        </span>
+
+    </p>
+
+    <h3>
+        Secure Code 安全写法
+    </h3>
+
+    <pre>{{ secure_code }}</pre>
+
+    <p>
+
+        {{ fix_secure_zh }}
+
+        <br>
+
+        <span class="en">
+            {{ fix_secure_en }}
+        </span>
+
+    </p>
+
+</section>
+
+<hr>
+
+<section>
+
+    <h2>
+        实验总结
+        <span class="sub">Summary</span>
+    </h2>
+
+    <ol class="steps">
+
+        {% for point in summary.points %}
+
+        <li>
+
+            {{ point.zh }}
+
+            <br>
+
+            <span class="en">
+                {{ point.en }}
+            </span>
+
+        </li>
+
+        {% endfor %}
+
+    </ol>
+
+    <p class="takeaway">
+
+        {{ summary.takeaway_zh }}
+
+        <br>
+
+        <span class="en">
+            {{ summary.takeaway_en }}
+        </span>
+
+    </p>
+
+    <p>
+
+        {{ summary.next_zh }}
+
+        <br>
+
+        <span class="en">
+            {{ summary.next_en }}
+        </span>
+
+    </p>
+
+</section>
+
+{% endif %}
+
+{% endblock %}
+
+{% endblock %}
